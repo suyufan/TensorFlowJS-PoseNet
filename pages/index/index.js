@@ -1,6 +1,7 @@
 // index.js
 // 获取应用实例
 import * as posenet from '@tensorflow-models/posenet';
+import {detectPoseInRealTime, drawPoses} from '../../posenet/posenet'
 const CANVAS_ID = 'image';
 const POSENET_URL =
     'https://www.gstaticcnapps.cn/tfjs-models/savedmodel/posenet/mobilenet/float/050/model-stride16.json';
@@ -29,11 +30,18 @@ Page({
   },
   executePosenet(frame) {
     if (this.posenetModel) {
-      const start = Data.now()
-
+      const start = Date.now()
+      detectPoseInRealTime(frame, this.posenetModel, false).then((poses) => {
+        this.poses = poses
+        drawPoses(this)
+        const result = `${Date.now() - start}ms`
+        this.setData({result})
+      }).catch((err) => {
+        console.log(err, err.stack);
+      })
     }
   },
-  onReady() {
+  async onReady() {
     console.log('create canvas context for #image...');
     setTimeout(() => {
       this.ctx = wx.createCanvasContext(CANVAS_ID)
@@ -42,7 +50,7 @@ Page({
     this.posenet()
     const context = wx.createCameraContext(this)
     let count = 0
-    const listener = camera.onCameraFrame((frame) => {
+    const listener = context.onCameraFrame((frame) => {
       count++
       if (count === 4){
         this.executePosenet(frame)
